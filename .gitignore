@@ -1,0 +1,69 @@
+# Dependencies
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Build outputs
+dist/
+build/
+*.egg-info/
+.eggs/
+
+# Frontend build
+frontend/dist/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+
+# Logs
+*.log
+logs/
+
+# Uploads (user data)
+uploads/
+*.pdf
+*.docx
+
+# Database
+*.db
+*.sqlite
+
+# Docker volumes (if mounted locally)
+postgres_data/
+redis_data/
+qdrant_data/
+
+# Secrets
+*.pem
+*.key
+secrets/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Temporary files
+tmp/
+temp/
+*.tmp
