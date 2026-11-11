@@ -8,6 +8,12 @@ from .auth import (
     TokenRefresh,
     PasswordChange,
 )
+from .reports import (
+    ReportUploadResponse,
+    ReportResponse,
+    ReportStatusResponse,
+    ReportListResponse,
+)
 
 __all__ = [
     "PaginatedResponse",
@@ -18,4 +24,8 @@ __all__ = [
     "TokenResponse",
     "TokenRefresh",
     "PasswordChange",
+    "ReportUploadResponse",
+    "ReportResponse",
+    "ReportStatusResponse",
+    "ReportListResponse",
 ]

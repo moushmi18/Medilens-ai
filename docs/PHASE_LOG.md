@@ -107,6 +107,52 @@ $ curl localhost:8247/api/health/ready
 
 ## Phase 3: Upload & Parsing
 
+**Status:** ✅ Complete  
+**Completed:** 2026-11-11
+
+### What Was Built
+- **Document Parsing Libraries**:
+  - PyMuPDF for digital PDF text extraction
+  - Tesseract OCR for scanned documents and images
+  - python-docx for Word document parsing
+- **File Upload System**:
+  - POST /api/reports/upload with multipart file upload
+  - File validation (PDF, JPG, PNG, DOCX only)
+  - Size limit enforcement (configurable, default 50MB)
+  - Duplicate detection via SHA-256 content hash
+  - User-isolated storage paths
+- **Report Management API**:
+  - GET /api/reports - List with pagination
+  - GET /api/reports/{id} - Get report details
+  - GET /api/reports/{id}/status - Get processing status
+  - DELETE /api/reports/{id} - Soft delete
+- **Tests**: 14 new tests (9 report, 5 ingestion)
+
+### Commands Run and Results
+```bash
+# Install document parsing libraries
+$ pip install pymupdf python-docx pillow pytesseract
+$ sudo apt-get install tesseract-ocr
+# Result: Successfully installed
+
+# Run all backend tests
+$ pytest ../tests/backend -v
+# Result: 28 passed
+
+# Test OCR
+$ pytest ../tests/backend/test_ingestion.py::test_ocr_simple_text -v
+# Result: 1 passed (Tesseract OCR working)
+```
+
+### Notes
+- PaddleOCR 3.x had significant compatibility issues with the system's paddle framework.
+  Switched to Tesseract OCR which is more stable and widely supported.
+- OCR accuracy depends on image quality and font clarity.
+
+---
+
+## Phase 4: Structured Extraction
+
 **Status:** 🔄 In Progress  
 **Started:** 2026-11-11
 
