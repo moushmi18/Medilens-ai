@@ -14,6 +14,11 @@ from .reports import (
     ReportStatusResponse,
     ReportListResponse,
 )
+from .extraction import (
+    ExtractedResultResponse,
+    ExtractedResultsResponse,
+    VerifyResultRequest,
+)
 
 __all__ = [
     "PaginatedResponse",
@@ -28,4 +33,7 @@ __all__ = [
     "ReportResponse",
     "ReportStatusResponse",
     "ReportListResponse",
+    "ExtractedResultResponse",
+    "ExtractedResultsResponse",
+    "VerifyResultRequest",
 ]

@@ -8,6 +8,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   error: string | null;
+  token: string | null;
   login: (request: LoginRequest) => Promise<User>;
   register: (request: RegisterRequest) => Promise<User>;
   logout: () => Promise<void>;
@@ -99,6 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user,
     loading,
     error,
+    token: api.getAccessToken(),
     login,
     register,
     logout,

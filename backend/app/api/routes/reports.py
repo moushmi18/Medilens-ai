@@ -12,8 +12,14 @@ from app.schemas.reports import (
     ReportStatusResponse,
     ReportListResponse,
 )
+from app.schemas.extraction import (
+    ExtractedResultResponse,
+    ExtractedResultsResponse,
+    VerifyResultRequest,
+)
 from app.services.auth_service import AuthService
 from app.services.report_service import ReportService
+from app.services.extraction_service import ExtractionService
 
 router = APIRouter(prefix="/reports")
 
@@ -24,6 +30,10 @@ def get_auth_service(db: Session = Depends(get_db)) -> AuthService:
 
 def get_report_service(db: Session = Depends(get_db)) -> ReportService:
     return ReportService(db)
+
+
+def get_extraction_service(db: Session = Depends(get_db)) -> ExtractionService:
+    return ExtractionService(db)
 
 
 def get_token_from_header(authorization: str | None = Header(default=None)) -> str:
@@ -123,3 +133,67 @@ def delete_report(
     """Delete a report."""
     user = auth_service.get_current_user(token)
     report_service.delete_report(user, report_id)
+
+
+@router.get("/{report_id}/results", response_model=ExtractedResultsResponse)
+def get_report_results(
+    report_id: UUID,
+    token: str = Depends(get_token_from_header),
+    auth_service: AuthService = Depends(get_auth_service),
+    extraction_service: ExtractionService = Depends(get_extraction_service),
+) -> ExtractedResultsResponse:
+    """Get extracted results for a report."""
+    user = auth_service.get_current_user(token)
+    results = extraction_service.get_results(user, report_id)
+    
+    return ExtractedResultsResponse(
+        report_id=report_id,
+        results=[ExtractedResultResponse.model_validate(r) for r in results],
+        total=len(results),
+    )
+
+
+@router.post("/{report_id}/process", response_model=ExtractedResultsResponse)
+def process_report(
+    report_id: UUID,
+    token: str = Depends(get_token_from_header),
+    auth_service: AuthService = Depends(get_auth_service),
+    report_service: ReportService = Depends(get_report_service),
+    extraction_service: ExtractionService = Depends(get_extraction_service),
+) -> ExtractedResultsResponse:
+    """Process a report to extract structured data."""
+    user = auth_service.get_current_user(token)
+    report_service.get_report(user, report_id)
+    
+    results = extraction_service.process_report(report_id)
+    
+    return ExtractedResultsResponse(
+        report_id=report_id,
+        results=[ExtractedResultResponse.model_validate(r) for r in results],
+        total=len(results),
+    )
+
+
+@router.patch("/{report_id}/results/{result_id}", response_model=ExtractedResultResponse)
+def verify_result(
+    report_id: UUID,
+    result_id: UUID,
+    request: VerifyResultRequest,
+    token: str = Depends(get_token_from_header),
+    auth_service: AuthService = Depends(get_auth_service),
+    extraction_service: ExtractionService = Depends(get_extraction_service),
+) -> ExtractedResultResponse:
+    """Verify and update an extracted result."""
+    user = auth_service.get_current_user(token)
+    
+    result = extraction_service.verify_result(
+        user=user,
+        result_id=result_id,
+        observed_value=request.observed_value,
+        unit=request.unit,
+        reference_range_low=request.reference_range_low,
+        reference_range_high=request.reference_range_high,
+        verification_note=request.verification_note,
+    )
+    
+    return ExtractedResultResponse.model_validate(result)

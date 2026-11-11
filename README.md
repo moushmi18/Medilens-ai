@@ -1,167 +1,197 @@
 # MediLens AI
 
-**RAG-powered Medical Report Explainer**
+A RAG-powered medical report explainer for **educational purposes only**.
 
-MediLens AI helps patients understand their medical reports through AI-powered explanations. It provides **educational and informational content only** — it never diagnoses, prescribes medications, or provides medical advice.
+## ⚠️ Important Disclaimer
+
+MediLens AI is designed for **educational purposes only**. It:
+- **NEVER** diagnoses conditions or diseases
+- **NEVER** prescribes medications or treatments
+- **NEVER** recommends specific dosages
+- **ALWAYS** recommends consulting healthcare providers
+
+This application should only be used with synthetic test data. Never upload real patient medical records.
 
 ## Features
 
-- **Report Upload** - Support for PDF, scanned documents, images, and DOCX files
-- **AI Explanations** - Natural language explanations of lab results and medical terms
-- **Trusted Sources** - Information backed by MedlinePlus, WHO, NHS, and other verified sources
-- **Report Comparison** - Track changes between reports over time
-- **Doctor Summary** - Generate summaries to discuss with your healthcare provider
-- **Privacy-First** - Your data is encrypted and you control its deletion
+- **Upload Medical Reports**: PDF, images, and DOCX support with OCR for scanned documents
+- **Structured Extraction**: Automatic extraction of lab results with confidence scoring
+- **AI-Powered Explanations**: Educational explanations using RAG with trusted sources
+- **Knowledge Base**: Information from MedlinePlus, NIH, NHS, and WHO
+- **Report Comparison**: Compare results across multiple reports
+- **Doctor Summary**: Generate PDF summaries for healthcare provider review
+- **Safety Engine**: Intent classification to prevent unsafe responses
+
+## Tech Stack
+
+- **Frontend**: React, TypeScript, Vite, Tailwind CSS
+- **Backend**: FastAPI, Python 3.12
+- **Database**: PostgreSQL (user data), Qdrant (vector search), Redis (cache/queue)
+- **ML/AI**: sentence-transformers (BGE embeddings), OpenAI API (optional)
+- **Document Processing**: PyMuPDF, Tesseract OCR, python-docx
 
 ## Quick Start
 
 ### Prerequisites
 
-- Node.js 22+
-- Python 3.11+
-- Docker & Docker Compose (recommended)
+- Python 3.12+
+- Node.js 18+
+- PostgreSQL 15+
+- Redis
+- Qdrant
 
-### Using Docker Compose (Recommended)
+### Backend Setup
 
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd medilens-ai
+cd backend
 
-# Copy environment file
+# Create virtual environment
+python -m venv .venv
+source .venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Set environment variables
 cp .env.example .env
+# Edit .env with your settings
 
-# Start all services
-docker compose up -d
+# Run migrations
+alembic upgrade head
 
-# View logs
-docker compose logs -f
+# Start server
+uvicorn app.main:app --host 0.0.0.0 --port 8247 --reload
 ```
 
-Access the application:
-- Frontend: http://localhost:5847
-- Backend API: http://localhost:8247
-- API Docs: http://localhost:8247/api/docs (debug mode)
-
-### Local Development
-
-#### Frontend
+### Frontend Setup
 
 ```bash
 cd frontend
+
+# Install dependencies
 npm install
+
+# Start dev server
 npm run dev
 ```
 
-Frontend runs at http://localhost:5847
+### Services
 
-#### Backend
-
-```bash
-cd backend
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e ".[dev]"
-
-# Run development server
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8247
-```
-
-Backend runs at http://localhost:8247
-
-### Running Tests
+Start PostgreSQL, Redis, and Qdrant:
 
 ```bash
-# Backend tests
-cd backend
-source .venv/bin/activate
-pytest ../tests/backend -v
+# PostgreSQL
+sudo systemctl start postgresql
+# or: pg_ctl -D /var/lib/postgresql/data start
 
-# Frontend lint and typecheck
-cd frontend
-npm run lint
-npm run typecheck
-npm run build
+# Redis
+redis-server
+
+# Qdrant
+./qdrant
 ```
 
 ## Project Structure
 
 ```
 medilens-ai/
-├── frontend/           # React + TypeScript + Vite
-│   └── src/
-│       ├── components/ # Reusable UI components
-│       ├── pages/      # Page components (11 routes)
-│       ├── layouts/    # Layout wrappers
-│       ├── hooks/      # Custom React hooks
-│       ├── services/   # API client
-│       └── types/      # TypeScript types
-├── backend/            # FastAPI + Python
-│   └── app/
-│       ├── api/        # API routes
-│       ├── core/       # Config, logging, exceptions
-│       ├── database/   # SQLAlchemy models
-│       ├── schemas/    # Pydantic schemas
-│       ├── services/   # Business logic
-│       ├── workers/    # Celery tasks
-│       └── ...         # RAG, safety, etc.
-├── tests/              # Test suite
-├── docs/               # Documentation
-├── evaluation/         # RAG evaluation framework
-└── sample_data/        # Synthetic test data
+├── backend/
+│   ├── app/
+│   │   ├── api/           # API routes
+│   │   ├── core/          # Config, security, logging
+│   │   ├── database/      # Models and session
+│   │   ├── embeddings/    # Qdrant client
+│   │   ├── extraction/    # Lab result extraction
+│   │   ├── ingestion/     # Document parsing
+│   │   ├── knowledge/     # Knowledge base
+│   │   ├── llm/           # LLM providers
+│   │   ├── rag/           # RAG pipeline
+│   │   ├── safety/        # Safety engine
+│   │   ├── evaluation/    # Metrics
+│   │   ├── schemas/       # Pydantic models
+│   │   └── services/      # Business logic
+│   └── tests/             # Test suite
+├── frontend/
+│   ├── src/
+│   │   ├── components/    # React components
+│   │   ├── pages/         # Page components
+│   │   ├── hooks/         # Custom hooks
+│   │   └── services/      # API client
+│   └── public/
+└── docs/
+    ├── ARCHITECTURE.md    # System design
+    ├── ROADMAP.md         # Development phases
+    └── DEPLOYMENT.md      # Deployment guide
 ```
-
-## Development Phases
-
-| Phase | Description | Status |
-|-------|-------------|--------|
-| 1 | Project setup, frontend shell, backend health checks | ✅ Complete |
-| 2 | Database, Qdrant, authentication | 🔲 Pending |
-| 3 | Upload, parsing, OCR | 🔲 Pending |
-| 4 | Structured extraction, verification | 🔲 Pending |
-| 5 | Knowledge base ingestion | 🔲 Pending |
-| 6 | Basic RAG pipeline | 🔲 Pending |
-| 7 | Hybrid retrieval + reranking | 🔲 Pending |
-| 8 | Safety engine, citations | 🔲 Pending |
-| 9 | Chat frontend | 🔲 Pending |
-| 10 | Comparison, doctor summary | 🔲 Pending |
-| 11 | Evaluation, testing | 🔲 Pending |
-| 12 | Production deployment | 🔲 Pending |
-
-See [docs/ROADMAP.md](docs/ROADMAP.md) for detailed phase information.
 
 ## API Endpoints
 
-### Health Checks
-- `GET /api/health` - Liveness probe
-- `GET /api/health/ready` - Readiness probe (checks Postgres, Redis, Qdrant)
+### Health
+- `GET /api/health` - Health check
+- `GET /api/health/ready` - Readiness check (includes DB)
 
-### Coming in Later Phases
-- Authentication (Phase 2)
-- Report management (Phase 3+)
-- Chat (Phase 6+)
-- Comparison & Summary (Phase 10)
+### Auth
+- `POST /api/auth/register` - Register user
+- `POST /api/auth/login` - Login
+- `POST /api/auth/logout` - Logout
+- `POST /api/auth/refresh` - Refresh token
+- `GET /api/auth/me` - Current user
 
-## Tech Stack
+### Reports
+- `POST /api/reports/upload` - Upload report
+- `GET /api/reports` - List reports
+- `GET /api/reports/{id}` - Get report
+- `GET /api/reports/{id}/results` - Get extracted results
+- `POST /api/reports/{id}/process` - Extract data
+- `DELETE /api/reports/{id}` - Delete report
 
-- **Frontend**: React, TypeScript, Vite, Tailwind CSS, React Router, Recharts
-- **Backend**: Python, FastAPI, SQLAlchemy, Alembic, Pydantic
-- **AI/RAG**: LlamaIndex, OpenAI, BGE embeddings, Qdrant
-- **Infrastructure**: PostgreSQL, Redis, Celery, Docker
+### Chat
+- `POST /api/chat` - Send message
+- `GET /api/chat/stream` - Stream response (SSE)
+- `GET /api/chat/conversations` - List conversations
+- `GET /api/chat/conversations/{id}` - Get conversation
 
-## Important Notes
+### Knowledge
+- `GET /api/sources` - List knowledge sources
+- `POST /api/sources` - Ingest content
 
-⚠️ **This application is for educational purposes only.**
+### Comparison
+- `POST /api/reports/compare` - Compare reports
+- `POST /api/reports/{id}/summary` - Generate PDF summary
 
-- Never provides medical diagnoses
-- Never prescribes medications or dosages
-- Never interprets results as conditions
-- Always recommends consulting healthcare professionals
+## Testing
+
+```bash
+cd backend
+python -m pytest tests/ -v
+```
+
+Current test coverage: 71 tests passing
+
+## Environment Variables
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `POSTGRES_HOST` | PostgreSQL host | Yes |
+| `POSTGRES_PASSWORD` | PostgreSQL password | Yes |
+| `REDIS_HOST` | Redis host | Yes |
+| `QDRANT_HOST` | Qdrant host | Yes |
+| `JWT_SECRET_KEY` | JWT signing key | Yes |
+| `OPENAI_API_KEY` | OpenAI API key | No* |
+
+*Without `OPENAI_API_KEY`, AI answers will return a "not configured" message.
+
+## Safety Features
+
+- **Intent Classification**: Detects diagnosis/medication requests
+- **Emergency Detection**: Detects crisis/emergency queries
+- **Response Validation**: Ensures responses don't contain unsafe content
+- **Automatic Disclaimers**: Adds educational disclaimers to responses
 
 ## License
 
-[Add your license here]
+Educational use only. Not for commercial deployment with real patient data.
 
-## Contributing
+---
 
-[Add contribution guidelines here]
+**Remember**: This is an educational tool. For medical advice, always consult a healthcare professional.
