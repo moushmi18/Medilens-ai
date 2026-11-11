@@ -1,8 +1,25 @@
-import { Link } from 'react-router-dom';
-import { LogIn, Clock } from 'lucide-react';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { LogIn, AlertCircle } from 'lucide-react';
 import { Card, Button, Input } from '../components';
+import { useAuth } from '../hooks/useAuth';
 
 export default function LoginPage() {
+  const navigate = useNavigate();
+  const { login, loading, error, clearError } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await login({ email, password });
+      navigate('/');
+    } catch {
+      // Error is handled by useAuth
+    }
+  };
+
   return (
     <Card>
       <div className="text-center mb-8">
@@ -13,31 +30,40 @@ export default function LoginPage() {
         <p className="text-slate-600 mt-1">Sign in to your MediLens AI account</p>
       </div>
 
-      {/* Coming soon notice */}
-      <div className="mb-6 p-4 rounded-lg bg-amber-50 border border-amber-200">
-        <div className="flex items-center gap-2 text-amber-800">
-          <Clock size={18} />
-          <span className="text-sm font-medium">Authentication coming in Phase 2</span>
+      {error && (
+        <div className="mb-6 p-4 rounded-lg bg-red-50 border border-red-200 flex items-start gap-3">
+          <AlertCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-red-800">Authentication Error</p>
+            <p className="text-sm text-red-700 mt-1">{error}</p>
+          </div>
+          <button
+            onClick={clearError}
+            className="ml-auto text-red-600 hover:text-red-800"
+          >
+            ×
+          </button>
         </div>
-        <p className="text-sm text-amber-700 mt-1">
-          User accounts and secure login will be implemented in the next development phase.
-        </p>
-      </div>
+      )}
 
-      <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
+      <form className="space-y-4" onSubmit={handleSubmit}>
         <Input
           label="Email Address"
           type="email"
           placeholder="you@example.com"
-          disabled
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
         />
         <Input
           label="Password"
           type="password"
           placeholder="••••••••"
-          disabled
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
         />
-        <Button className="w-full" size="lg" disabled>
+        <Button className="w-full" size="lg" loading={loading} type="submit">
           Sign In
         </Button>
       </form>

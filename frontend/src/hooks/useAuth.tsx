@@ -1,12 +1,31 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, createContext, useContext } from 'react';
+import type { ReactNode } from 'react';
 import { api } from '../services/api';
 import type { User } from '../types/models';
 import type { LoginRequest, RegisterRequest } from '../types/api';
 
-export function useAuth() {
+interface AuthContextType {
+  user: User | null;
+  loading: boolean;
+  error: string | null;
+  login: (request: LoginRequest) => Promise<User>;
+  register: (request: RegisterRequest) => Promise<User>;
+  logout: () => Promise<void>;
+  checkAuth: () => Promise<User | null>;
+  isAuthenticated: boolean;
+  clearError: () => void;
+}
+
+const AuthContext = createContext<AuthContextType | null>(null);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
 
   const login = useCallback(async (request: LoginRequest) => {
     setLoading(true);
@@ -16,7 +35,7 @@ export function useAuth() {
       const userData = await api.getMe();
       setUser(userData);
       return userData;
-    } catch (err) {
+    } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Login failed';
       setError(message);
       throw err;
@@ -33,7 +52,7 @@ export function useAuth() {
       const userData = await api.getMe();
       setUser(userData);
       return userData;
-    } catch (err) {
+    } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Registration failed';
       setError(message);
       throw err;
@@ -56,6 +75,7 @@ export function useAuth() {
 
   const checkAuth = useCallback(async () => {
     if (!api.getAccessToken()) {
+      setLoading(false);
       return null;
     }
     setLoading(true);
@@ -71,7 +91,11 @@ export function useAuth() {
     }
   }, []);
 
-  return {
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  const value: AuthContextType = {
     user,
     loading,
     error,
@@ -80,5 +104,20 @@ export function useAuth() {
     logout,
     checkAuth,
     isAuthenticated: !!user,
+    clearError,
   };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth(): AuthContextType {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 }
