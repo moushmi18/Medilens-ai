@@ -212,6 +212,56 @@ class ApiClient {
     await this.client.delete(`/reports/${id}`);
   }
 
+  async getReportFileBlob(id: string): Promise<Blob> {
+    const { data } = await this.client.get(`/reports/${id}/file`, {
+      responseType: 'blob',
+    });
+    return data;
+  }
+
+  async getReportText(id: string): Promise<string> {
+    const { data } = await this.client.get<string>(`/reports/${id}/text`, {
+      responseType: 'text',
+      headers: { Accept: 'text/plain' },
+      transformResponse: [(d) => d],
+    } as AxiosRequestConfig);
+    return typeof data === 'string' ? data : String(data);
+  }
+
+  async getSettings(): Promise<{
+    preferences: {
+      email_notifications: boolean;
+      processing_alerts: boolean;
+      dark_mode: boolean;
+      show_confidence: boolean;
+      auto_process: boolean;
+    };
+    retention_days: number;
+  }> {
+    const { data } = await this.client.get('/settings');
+    return data;
+  }
+
+  async updateSettings(preferences: {
+    email_notifications?: boolean;
+    processing_alerts?: boolean;
+    dark_mode?: boolean;
+    show_confidence?: boolean;
+    auto_process?: boolean;
+  }): Promise<{
+    preferences: {
+      email_notifications: boolean;
+      processing_alerts: boolean;
+      dark_mode: boolean;
+      show_confidence: boolean;
+      auto_process: boolean;
+    };
+    retention_days: number;
+  }> {
+    const { data } = await this.client.put('/settings', preferences);
+    return data;
+  }
+
   async chat(request: ChatRequest): Promise<ChatResponse> {
     const { data } = await this.client.post<ChatResponse>('/chat', request);
     return data;

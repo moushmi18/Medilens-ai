@@ -1,11 +1,13 @@
 """Reports API routes."""
+from pathlib import Path
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, Header, UploadFile
+from fastapi import APIRouter, Depends, File, Header, HTTPException, UploadFile
+from fastapi.responses import FileResponse, PlainTextResponse
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, get_qdrant
-from app.core.exceptions import AuthenticationError
+from app.core.exceptions import AuthenticationError, NotFoundError
 from app.schemas.reports import (
     ReportUploadResponse,
     ReportResponse,
@@ -20,6 +22,7 @@ from app.schemas.extraction import (
 from app.services.auth_service import AuthService
 from app.services.report_service import ReportService
 from app.services.extraction_service import ExtractionService
+from app.ingestion.docx_parser import extract_text_from_docx
 
 router = APIRouter(prefix="/reports")
 
@@ -127,6 +130,73 @@ def get_report_status(
         status=report.status,
         error=report.processing_error,
     )
+
+
+_MEDIA_TYPES = {
+    "pdf": "application/pdf",
+    "image": None,  # derived from extension
+    "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+}
+
+
+@router.get("/{report_id}/file")
+def get_report_file(
+    report_id: UUID,
+    token: str = Depends(get_token_from_header),
+    auth_service: AuthService = Depends(get_auth_service),
+    report_service: ReportService = Depends(get_report_service),
+) -> FileResponse:
+    """Serve the original uploaded file (per-user authorization enforced)."""
+    user = auth_service.get_current_user(token)
+    report = report_service.get_report(user, report_id)
+
+    path = Path(report.storage_path)
+    if not path.exists():
+        raise NotFoundError("Report file", str(report_id))
+
+    media_type = _MEDIA_TYPES.get(report.file_type)
+    if report.file_type == "image":
+        ext = path.suffix.lower()
+        media_type = {
+            ".png": "image/png",
+            ".jpg": "image/jpeg",
+            ".jpeg": "image/jpeg",
+        }.get(ext, "application/octet-stream")
+    if media_type is None:
+        media_type = "application/octet-stream"
+
+    return FileResponse(
+        path=path,
+        media_type=media_type,
+        filename=report.original_filename,
+        content_disposition_type="inline",
+    )
+
+
+@router.get("/{report_id}/text", response_class=PlainTextResponse)
+def get_report_text(
+    report_id: UUID,
+    token: str = Depends(get_token_from_header),
+    auth_service: AuthService = Depends(get_auth_service),
+    report_service: ReportService = Depends(get_report_service),
+) -> PlainTextResponse:
+    """Return extracted text preview (used for DOCX and fallback text view)."""
+    user = auth_service.get_current_user(token)
+    report = report_service.get_report(user, report_id)
+    path = Path(report.storage_path)
+    if not path.exists():
+        raise NotFoundError("Report file", str(report_id))
+
+    if report.file_type == "docx":
+        extracted = extract_text_from_docx(path)
+        return PlainTextResponse(extracted.get("text") or "(empty document)")
+
+    if report.file_type == "pdf":
+        from app.ingestion import extract_text_from_pdf
+        extracted = extract_text_from_pdf(path)
+        return PlainTextResponse(extracted.get("text") or "(no extractable text)")
+
+    raise HTTPException(status_code=400, detail="Text preview only available for DOCX/PDF")
 
 
 @router.delete("/{report_id}", status_code=204)

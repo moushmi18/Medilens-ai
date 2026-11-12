@@ -20,12 +20,54 @@ export default function ReportViewerPage() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [docxText, setDocxText] = useState<string | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   useEffect(() => {
     if (id) {
       loadReport();
     }
   }, [id]);
+
+  useEffect(() => {
+    if (!report || !id) return;
+
+    let objectUrl: string | null = null;
+    let cancelled = false;
+
+    const loadPreview = async () => {
+      setPreviewLoading(true);
+      setPreviewError(null);
+      setDocxText(null);
+      setPreviewUrl(null);
+
+      try {
+        if (report.file_type === 'docx') {
+          const text = await api.getReportText(id);
+          if (!cancelled) setDocxText(text);
+        } else {
+          const blob = await api.getReportFileBlob(id);
+          objectUrl = URL.createObjectURL(blob);
+          if (!cancelled) setPreviewUrl(objectUrl);
+        }
+      } catch (err: any) {
+        if (!cancelled) {
+          setPreviewError(err?.message || 'Failed to load document preview');
+        }
+      } finally {
+        if (!cancelled) setPreviewLoading(false);
+      }
+    };
+
+    loadPreview();
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [report?.id, report?.file_type, id]);
 
   const loadReport = async () => {
     try {
@@ -87,6 +129,71 @@ export default function ReportViewerPage() {
       );
     }
     return null;
+  };
+
+  const renderDocumentPreview = () => {
+    if (previewLoading) {
+      return (
+        <div className="min-h-[400px] flex flex-col items-center justify-center">
+          <Loader2 className="animate-spin text-blue-600 mb-3" size={32} />
+          <p className="text-sm text-gray-500">Loading original document…</p>
+        </div>
+      );
+    }
+
+    if (previewError) {
+      return (
+        <div className="min-h-[400px] flex flex-col items-center justify-center p-6 text-center">
+          <AlertTriangle className="text-amber-500 mb-3" size={32} />
+          <p className="text-gray-700 font-medium">Could not load document</p>
+          <p className="text-sm text-gray-500 mt-1">{previewError}</p>
+        </div>
+      );
+    }
+
+    if (report?.file_type === 'docx' && docxText != null) {
+      return (
+        <div className="bg-white rounded-lg shadow-sm border min-h-[400px] overflow-auto">
+          <div className="px-4 py-2 border-b bg-gray-50 text-sm text-gray-600 font-medium">
+            DOCX text preview
+          </div>
+          <pre className="p-4 whitespace-pre-wrap text-sm text-gray-800 font-sans leading-relaxed">
+            {docxText}
+          </pre>
+        </div>
+      );
+    }
+
+    if (report?.file_type === 'pdf' && previewUrl) {
+      return (
+        <div className="bg-white rounded-lg shadow-sm border overflow-hidden min-h-[400px] h-[calc(100vh-220px)]">
+          <iframe
+            title={`PDF preview: ${report.original_filename}`}
+            src={previewUrl}
+            className="w-full h-full border-0"
+          />
+        </div>
+      );
+    }
+
+    if (report?.file_type === 'image' && previewUrl) {
+      return (
+        <div className="bg-white rounded-lg shadow-sm border p-4 min-h-[400px] flex items-center justify-center overflow-auto">
+          <img
+            src={previewUrl}
+            alt={report.original_filename}
+            className="max-w-full max-h-[calc(100vh-240px)] object-contain"
+          />
+        </div>
+      );
+    }
+
+    return (
+      <div className="min-h-[400px] flex flex-col items-center justify-center text-gray-500">
+        <FileText size={48} className="mb-3 text-gray-300" />
+        <p>No preview available for this file type.</p>
+      </div>
+    );
   };
 
   if (loading) {
@@ -162,16 +269,8 @@ export default function ReportViewerPage() {
 
       <div className="flex-1 flex overflow-hidden">
         <div className="w-1/2 border-r bg-gray-100 p-4 overflow-auto">
-          <div className="bg-white rounded-lg shadow-sm border p-8 text-center min-h-[400px] flex flex-col items-center justify-center">
-            <FileText className="text-gray-300 mb-4" size={64} />
-            <h3 className="text-lg font-medium text-gray-700 mb-2">Original Document</h3>
-            <p className="text-gray-500 text-sm mb-4">
-              Document preview would appear here
-            </p>
-            <p className="text-xs text-gray-400">
-              File type: {report.file_type.toUpperCase()}
-            </p>
-          </div>
+          <h2 className="font-semibold text-gray-900 mb-3">Original Document</h2>
+          {renderDocumentPreview()}
         </div>
 
         <div className="w-1/2 bg-white overflow-auto">

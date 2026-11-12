@@ -226,7 +226,23 @@ $ cd backend && python -m app.evaluation.run_evaluation
 - Screenshots under `/opt/cursor/artifacts/`
 - Git bundle: `/opt/cursor/artifacts/medilens-ai.bundle`
 
-### Honest caveats
-- Automatic retention purge jobs are **not** scheduled; retention preference is stored per user.
-- Generation quality metrics requiring an LLM key were **not** executed.
-- Settings notification toggles are client-local (not a full preferences API).
+### Gap-close (2026-11-12) — verified
+
+| Gap | Fix | Verification |
+|-----|-----|--------------|
+| Report viewer placeholder | `GET /api/reports/{id}/file` (+ `/text` for DOCX); blob iframe/img/pre preview | File endpoint 200 + auth isolation tests; image preview screenshot shows lab scan |
+| Retention purge | Celery beat `purge-expired-user-data-daily` + `RetentionService` | 5 retention tests passed |
+| Settings toggles | `users.preferences` JSONB + `GET/PUT /api/settings` | 3 settings tests passed; Settings page loads prefs |
+| Header Demo User | `useAuth()` name/email/initials | Screenshot shows Avery Chen + email |
+
+```bash
+$ alembic upgrade head   # c4e8f2a91b03 preferences column
+$ pytest tests/ ../tests/backend/ -q
+# 112 passed
+$ npm run build
+# succeeded
+```
+
+### Remaining honest caveats
+- RAGAS generation metrics still **NOT RUN** (no `OPENAI_API_KEY`).
+- Headless Chromium often screenshots PDF iframes as blank white even when `iframe[src^=blob:]` is present; PDF serving verified by HTTP 200 + DOM.

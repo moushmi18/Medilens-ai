@@ -1,5 +1,6 @@
 """Celery application configuration."""
 from celery import Celery
+from celery.schedules import crontab
 
 from app.core.config import settings
 
@@ -21,4 +22,10 @@ celery_app.conf.update(
     task_soft_time_limit=3300,
     worker_prefetch_multiplier=1,
     worker_concurrency=2,
+    beat_schedule={
+        "purge-expired-user-data-daily": {
+            "task": "purge_expired_user_data",
+            "schedule": crontab(hour=3, minute=0),  # 03:00 UTC daily
+        },
+    },
 )

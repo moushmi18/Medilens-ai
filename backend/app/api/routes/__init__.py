@@ -11,6 +11,7 @@ from .comparison import router as comparison_router, reports_router as compariso
 from .dashboard import router as dashboard_router
 from .feedback import router as feedback_router
 from .privacy import router as privacy_router
+from .settings import router as settings_router
 
 router = APIRouter()
 
@@ -25,3 +26,4 @@ router.include_router(chat_router, tags=["chat"])
 router.include_router(chat_stream_router, tags=["chat"])
 router.include_router(feedback_router, tags=["feedback"])
 router.include_router(privacy_router, tags=["privacy"])
+router.include_router(settings_router, tags=["settings"])

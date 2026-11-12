@@ -41,6 +41,18 @@ class User(Base):
     email_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     retention_days: Mapped[int] = mapped_column(Integer, default=365)
+    preferences: Mapped[dict] = mapped_column(
+        JSONB,
+        default=lambda: {
+            "email_notifications": True,
+            "processing_alerts": True,
+            "dark_mode": False,
+            "show_confidence": True,
+            "auto_process": False,
+        },
+        nullable=False,
+        server_default='{"email_notifications": true, "processing_alerts": true, "dark_mode": false, "show_confidence": true, "auto_process": false}',
+    )
 
     reports: Mapped[list["MedicalReport"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     conversations: Mapped[list["Conversation"]] = relationship(back_populates="user", cascade="all, delete-orphan")

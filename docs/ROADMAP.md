@@ -28,9 +28,7 @@ MediLens AI is built in 12 phases. Status below reflects what is **actually impl
 ## Remaining / Partial Items (honest)
 
 - **LLM generation metrics (RAGAS faithfulness / answer relevancy / citation correctness):** NOT RUN — no `OPENAI_API_KEY` in this environment.
-- **Automatic retention purge jobs:** retention preference is stored (`PUT /api/privacy/retention`); scheduled purge is not implemented.
-- **Settings notification toggles:** stored in browser `localStorage`, not a full server preferences API.
-- **Celery scheduled knowledge refresh:** Celery app exists; scheduled production refresh is not required for the educational slice.
+- **Celery scheduled knowledge refresh:** Celery app exists; retention purge beat is scheduled; knowledge refresh schedule is optional.
 - **Admin audit log UI:** `audit_logs` table exists; no admin UI shipped.
 
 ---
