@@ -1,7 +1,7 @@
 """OCR processing for scanned documents.
 
-Note: PaddleOCR 3.x has compatibility issues. This module provides a fallback
-using Tesseract OCR when available, or returns empty results when OCR is not available.
+Primary: PaddleOCR (as per spec)
+Fallback: Tesseract OCR (if PaddleOCR fails)
 """
 import io
 import shutil
@@ -14,8 +14,30 @@ from app.core.logging import get_logger
 
 logger = get_logger(__name__)
 
-_ocr_available = None
+_paddleocr_instance = None
+_paddleocr_available = None
 _tesseract_available = None
+
+
+def _get_paddleocr():
+    """Get or create PaddleOCR instance."""
+    global _paddleocr_instance, _paddleocr_available
+    
+    if _paddleocr_available is False:
+        return None
+    
+    if _paddleocr_instance is None:
+        try:
+            from paddleocr import PaddleOCR
+            _paddleocr_instance = PaddleOCR(lang='en')
+            _paddleocr_available = True
+            logger.info("paddleocr_initialized")
+        except Exception as e:
+            _paddleocr_available = False
+            logger.warning("paddleocr_init_failed", error=str(e))
+            return None
+    
+    return _paddleocr_instance
 
 
 def _check_tesseract() -> bool:
@@ -35,7 +57,8 @@ def _check_tesseract() -> bool:
 def ocr_image(image_data: bytes | str | Path) -> dict[str, Any]:
     """Perform OCR on an image.
     
-    Uses Tesseract OCR if available. Falls back to empty result if not.
+    Uses PaddleOCR as primary engine (per spec).
+    Falls back to Tesseract if PaddleOCR fails.
     
     Args:
         image_data: Image as bytes, file path string, or Path object
@@ -54,6 +77,13 @@ def ocr_image(image_data: bytes | str | Path) -> dict[str, Any]:
     else:
         raise ValueError(f"Unsupported image_data type: {type(image_data)}")
     
+    ocr = _get_paddleocr()
+    if ocr is not None:
+        try:
+            return _ocr_with_paddleocr(ocr, image)
+        except Exception as e:
+            logger.warning("paddleocr_failed_falling_back", error=str(e))
+    
     if _check_tesseract():
         return _ocr_with_tesseract(image)
     
@@ -63,12 +93,67 @@ def ocr_image(image_data: bytes | str | Path) -> dict[str, Any]:
         "lines": [],
         "confidence": 0.0,
         "ocr_engine": "none",
-        "warning": "OCR not available. Install tesseract-ocr and pytesseract.",
+        "warning": "OCR not available. Install PaddleOCR or tesseract-ocr.",
+    }
+
+
+def _ocr_with_paddleocr(ocr, image: Image.Image) -> dict[str, Any]:
+    """Perform OCR using PaddleOCR."""
+    import numpy as np
+    
+    img_array = np.array(image.convert("RGB"))
+    
+    result = ocr.predict(img_array)
+    
+    lines = []
+    texts = []
+    confidences = []
+    
+    if result and len(result) > 0:
+        for item in result:
+            if hasattr(item, 'rec_texts') and hasattr(item, 'rec_scores'):
+                for i, (text, score) in enumerate(zip(item.rec_texts, item.rec_scores)):
+                    if text.strip():
+                        texts.append(text.strip())
+                        confidences.append(float(score))
+                        
+                        bbox = None
+                        if hasattr(item, 'dt_polys') and i < len(item.dt_polys):
+                            poly = item.dt_polys[i]
+                            if len(poly) >= 4:
+                                xs = [p[0] for p in poly]
+                                ys = [p[1] for p in poly]
+                                bbox = {
+                                    "left": int(min(xs)),
+                                    "top": int(min(ys)),
+                                    "width": int(max(xs) - min(xs)),
+                                    "height": int(max(ys) - min(ys)),
+                                }
+                        
+                        lines.append({
+                            "text": text.strip(),
+                            "confidence": float(score),
+                            "bounding_box": bbox,
+                        })
+    
+    avg_confidence = sum(confidences) / len(confidences) if confidences else 0.0
+    
+    logger.debug(
+        "paddleocr_completed",
+        line_count=len(texts),
+        avg_confidence=avg_confidence,
+    )
+    
+    return {
+        "text": "\n".join(texts),
+        "lines": lines,
+        "confidence": avg_confidence,
+        "ocr_engine": "paddleocr",
     }
 
 
 def _ocr_with_tesseract(image: Image.Image) -> dict[str, Any]:
-    """Perform OCR using Tesseract."""
+    """Perform OCR using Tesseract (fallback)."""
     import pytesseract
     
     data = pytesseract.image_to_data(image, output_type=pytesseract.Output.DICT)
@@ -151,6 +236,7 @@ def ocr_pdf_pages(page_images: list[bytes]) -> dict[str, Any]:
             "text": page_result["text"],
             "lines": page_result["lines"],
             "confidence": page_result["confidence"],
+            "ocr_engine": page_result.get("ocr_engine", "unknown"),
         })
         all_texts.append(page_result["text"])
         if page_result["confidence"] > 0:

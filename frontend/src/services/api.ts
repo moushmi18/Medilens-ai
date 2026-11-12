@@ -9,7 +9,6 @@ import type {
   UploadResponse,
   ChatRequest,
   ChatResponse,
-  CompareRequest,
   CompareResponse,
   FeedbackRequest,
   PaginatedResponse,
@@ -137,11 +136,15 @@ class ApiClient {
     return data;
   }
 
-  async getReports(page = 1, pageSize = 10): Promise<PaginatedResponse<Report>> {
+  async listReports(page = 1, pageSize = 10): Promise<PaginatedResponse<Report>> {
     const { data } = await this.client.get<PaginatedResponse<Report>>('/reports', {
       params: { page, page_size: pageSize },
     });
     return data;
+  }
+
+  async getReports(page = 1, pageSize = 10): Promise<PaginatedResponse<Report>> {
+    return this.listReports(page, pageSize);
   }
 
   async getReport(id: string): Promise<Report> {
@@ -154,8 +157,13 @@ class ApiClient {
     return data;
   }
 
-  async getReportResults(id: string): Promise<ExtractedResult[]> {
-    const { data } = await this.client.get<ExtractedResult[]>(`/reports/${id}/results`);
+  async getReportResults(id: string): Promise<{ results: ExtractedResult[]; total: number }> {
+    const { data } = await this.client.get<{ results: ExtractedResult[]; total: number }>(`/reports/${id}/results`);
+    return data;
+  }
+
+  async processReport(id: string): Promise<{ results: ExtractedResult[]; total: number }> {
+    const { data } = await this.client.post<{ results: ExtractedResult[]; total: number }>(`/reports/${id}/process`);
     return data;
   }
 
@@ -168,26 +176,30 @@ class ApiClient {
     return data;
   }
 
-  async getConversations(page = 1, pageSize = 10): Promise<PaginatedResponse<Conversation>> {
-    const { data } = await this.client.get<PaginatedResponse<Conversation>>('/conversations', {
+  async listConversations(page = 1, pageSize = 10): Promise<PaginatedResponse<Conversation>> {
+    const { data } = await this.client.get<PaginatedResponse<Conversation>>('/chat/conversations', {
       params: { page, page_size: pageSize },
     });
     return data;
   }
 
+  async getConversations(page = 1, pageSize = 10): Promise<PaginatedResponse<Conversation>> {
+    return this.listConversations(page, pageSize);
+  }
+
   async getConversation(id: string): Promise<{ conversation: Conversation; messages: Message[] }> {
     const { data } = await this.client.get<{ conversation: Conversation; messages: Message[] }>(
-      `/conversations/${id}`
+      `/chat/conversations/${id}`
     );
     return data;
   }
 
   async deleteConversation(id: string): Promise<void> {
-    await this.client.delete(`/conversations/${id}`);
+    await this.client.delete(`/chat/conversations/${id}`);
   }
 
-  async compareReports(request: CompareRequest): Promise<CompareResponse> {
-    const { data } = await this.client.post<CompareResponse>('/reports/compare', request);
+  async compareReports(reportIds: string[]): Promise<CompareResponse> {
+    const { data } = await this.client.post<CompareResponse>('/reports/compare', { report_ids: reportIds });
     return data;
   }
 

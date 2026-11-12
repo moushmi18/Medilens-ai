@@ -58,12 +58,14 @@ class RetrievalService:
         query_vector = self.embeddings.embed_query(query)
         
         try:
-            results = self.qdrant.search(
+            from qdrant_client.models import QueryRequest
+            
+            results = self.qdrant.query_points(
                 collection_name=TRUSTED_KNOWLEDGE_COLLECTION,
-                query_vector=query_vector,
+                query=query_vector,
                 limit=limit,
                 score_threshold=score_threshold,
-            )
+            ).points
         except Exception as e:
             logger.error("trusted_knowledge_search_failed", error=str(e))
             return []
@@ -132,13 +134,13 @@ class RetrievalService:
         search_filter = Filter(must=must_conditions)
         
         try:
-            results = self.qdrant.search(
+            results = self.qdrant.query_points(
                 collection_name=USER_REPORTS_COLLECTION,
-                query_vector=query_vector,
+                query=query_vector,
                 query_filter=search_filter,
                 limit=limit,
                 score_threshold=score_threshold,
-            )
+            ).points
         except Exception as e:
             logger.error("user_reports_search_failed", error=str(e))
             return []

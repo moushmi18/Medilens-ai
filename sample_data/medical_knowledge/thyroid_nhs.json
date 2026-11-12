@@ -1,0 +1,8 @@
+{
+  "source_type": "nhs",
+  "source_url": "https://www.nhs.uk/conditions/thyroid-function-test/",
+  "access_date": "2024-01-15",
+  "title": "Thyroid Function Tests",
+  "content": "A thyroid function test is a blood test to check how well your thyroid gland is working. The thyroid gland is in the front of your neck. It produces hormones that control many of your body's functions, including your metabolism, heart rate, and body temperature.\n\nThe main tests are:\n\nTSH (Thyroid-Stimulating Hormone): TSH is produced by the pituitary gland in your brain. It tells your thyroid to produce thyroid hormones. The normal range is typically 0.4 to 4.0 mIU/L. A high TSH level may indicate an underactive thyroid (hypothyroidism). A low TSH level may indicate an overactive thyroid (hyperthyroidism).\n\nFree T4 (Thyroxine): T4 is the main hormone produced by your thyroid gland. Free T4 measures the amount of T4 that is available to be used by your body. The normal range is typically 0.8 to 1.8 ng/dL.\n\nFree T3 (Triiodothyronine): T3 is another hormone produced by your thyroid. It's more active than T4. Free T3 measures the amount of T3 available to your body. The normal range is typically 2.3 to 4.2 pg/mL.\n\nThyroid antibodies tests may also be done to check for autoimmune thyroid conditions.\n\nThyroid function tests are usually done if you have symptoms of thyroid problems, such as unexplained weight changes, fatigue, hair loss, or changes in heart rate.",
+  "topics": ["thyroid", "TSH", "T4", "T3", "hypothyroidism", "hyperthyroidism", "thyroid function test"]
+}

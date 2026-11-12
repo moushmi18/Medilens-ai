@@ -1,34 +1,27 @@
-# Medical Knowledge
+# Medical Knowledge Base
 
-Sample trusted medical knowledge content for development.
+This folder contains curated medical knowledge documents from permitted official sources
+for the MediLens AI knowledge base.
 
-## Sources (permitted only)
+## Permitted Sources (per ARCHITECTURE.md)
 
-- MedlinePlus (NIH)
-- WHO publications
-- NHS Health A-Z
-- NIH resources
-- NIDDK
+1. **MedlinePlus** (medlineplus.gov) - NIH's consumer health information
+2. **NIH/NIDDK** (niddk.nih.gov) - National Institute of Diabetes and Digestive and Kidney Diseases
+3. **NHS** (nhs.uk) - UK National Health Service
+4. **WHO** (who.int) - World Health Organization
 
-## Structure
+## Documents
 
-- `sources.json` - Source URLs and metadata
-- `sample_content/` - Sample parsed content
-  - `{source}_{topic}.json` - Parsed and chunked content
+Each document includes:
+- Source URL and access date
+- Content extracted per robots.txt/terms of service
+- Topic metadata for retrieval
 
-## Format
+## Usage
 
-Each knowledge chunk includes:
-- `title` - Article title
-- `publisher` - Source organization
-- `url` - Original URL
-- `publication_date` - When published
-- `retrieval_date` - When fetched
-- `topic` - Medical topic
-- `content` - Cleaned text content
-- `chunk_index` - Position in original document
-
-## Note
-
-This directory contains development samples only.
-Production knowledge ingestion runs through the ingestion pipeline.
+These documents are ingested into the Qdrant `trusted_knowledge` collection
+for RAG retrieval. The ingestion process:
+1. Parses documents using LlamaIndex
+2. Chunks semantically using sentence splitter
+3. Generates BGE-small-en-v1.5 embeddings
+4. Stores in Qdrant with source provenance

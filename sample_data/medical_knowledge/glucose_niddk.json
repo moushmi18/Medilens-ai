@@ -1,0 +1,8 @@
+{
+  "source_type": "nih_niddk",
+  "source_url": "https://www.niddk.nih.gov/health-information/diabetes/overview/tests-diagnosis",
+  "access_date": "2024-01-15",
+  "title": "Diabetes Tests & Diagnosis",
+  "content": "Blood glucose tests are used to diagnose diabetes and prediabetes. A blood glucose test measures the amount of glucose (sugar) in your blood.\n\nFasting Blood Sugar Test: This measures your blood sugar after an overnight fast (not eating). A fasting blood sugar level of 99 mg/dL or lower is normal. A level of 100 to 125 mg/dL indicates prediabetes. A level of 126 mg/dL or higher indicates diabetes.\n\nRandom Blood Sugar Test: This measures blood sugar at any time, regardless of when you last ate. A level of 200 mg/dL or higher suggests diabetes, especially if you also have symptoms of diabetes such as frequent urination and extreme thirst.\n\nOral Glucose Tolerance Test (OGTT): This test measures blood sugar before and 2 hours after you drink a special sweet drink. It shows how well your body processes glucose. A 2-hour blood sugar level of 140 mg/dL or lower is normal. A level of 140 to 199 mg/dL indicates prediabetes. A level of 200 mg/dL or higher indicates diabetes.\n\nHemoglobin A1C Test: The A1C test measures your average blood sugar level over the past 2 to 3 months. An A1C below 5.7% is normal. An A1C of 5.7% to 6.4% indicates prediabetes. An A1C of 6.5% or higher indicates diabetes.\n\nNote: These are general guidelines. Always consult your healthcare provider for proper diagnosis and interpretation of test results.",
+  "topics": ["glucose", "blood sugar", "diabetes", "prediabetes", "fasting blood sugar", "A1C", "hemoglobin A1C", "OGTT"]
+}
