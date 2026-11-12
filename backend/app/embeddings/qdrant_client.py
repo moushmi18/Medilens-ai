@@ -18,10 +18,14 @@ EMBEDDING_DIM = 384  # BGE-small-en-v1.5
 
 def get_qdrant_client() -> QdrantClient:
     """Get Qdrant client instance."""
+    api_key = settings.qdrant_api_key or None
     return QdrantClient(
         host=settings.qdrant_host,
         port=settings.qdrant_port,
-        api_key=settings.qdrant_api_key,
+        api_key=api_key,
+        https=False if not api_key else None,
+        prefer_grpc=False,
+        check_compatibility=False,
     )
 
 

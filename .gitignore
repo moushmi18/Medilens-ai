@@ -44,6 +44,8 @@ logs/
 uploads/
 *.pdf
 *.docx
+!sample_data/**/*.pdf
+!sample_data/**/*.docx
 
 # Database
 *.db

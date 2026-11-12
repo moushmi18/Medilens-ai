@@ -66,12 +66,8 @@ def check_redis() -> bool:
 def check_qdrant() -> bool:
     """Check Qdrant connectivity."""
     try:
-        client = QdrantClient(
-            host=settings.qdrant_host,
-            port=settings.qdrant_port,
-            api_key=settings.qdrant_api_key,
-            timeout=2,
-        )
+        from app.embeddings.qdrant_client import get_qdrant_client
+        client = get_qdrant_client()
         client.get_collections()
         client.close()
         return True

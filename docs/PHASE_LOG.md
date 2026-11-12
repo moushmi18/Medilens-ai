@@ -1,168 +1,232 @@
 # MediLens AI - Phase Development Log
 
-This document records what was built in each phase, commands run, and actual results.
+This document records what was built in each phase, commands run, and **actual** results.
+Claims of “passing” below refer only to commands that were executed in this environment.
 
-**Total Tests: 71 passing**  
-**All 12 Phases: Complete**
+**Latest verification (this resume):** see Phase 12 and the final report in the agent summary.
 
 ---
 
 ## Phase 1: Project Initialization
 
-**Status:** ✅ Complete  
-**Commit:** `cc4370e78e8e1c5874a0022c3caad5d22dd90712`
+**Status:** Complete  
+**Evidence commit (historical):** `cc4370e`
 
 ### What Was Built
-- Architecture documentation with full requirements analysis, 16-step RAG pipeline, safety engine design
-- 12-phase roadmap with deliverables
-- Complete folder structure with README stubs
-- Frontend: React + TypeScript + Vite + Tailwind with 11 routes, premium healthcare SaaS design
-- Backend: FastAPI with modular layout, health endpoints, config, logging
-- SQLAlchemy + Alembic initialized
-- Celery app with Redis and ping task
-- Docker Compose, Dockerfiles, .env.example, .gitignore, README.md
+- Architecture documentation, 12-phase roadmap, folder structure
+- Frontend: React + TypeScript + Vite + Tailwind with 11 routes
+- Backend: FastAPI modular layout, health endpoints, config, logging
+- SQLAlchemy + Alembic initialized; Celery + Redis ping task
+- Docker Compose / Dockerfiles / `.env.example` / README
 
 ### Commands Run and Results
 ```bash
-# Backend tests
 $ pytest ../tests/backend -v
-# Result: 3 passed
+# Result (historical Phase 1): 3 passed (health)
 
-# Frontend build
 $ npm run build
-# Result: Build successful (281KB JS, 22KB CSS)
+# Result: Build successful
 
-# Health endpoint
 $ curl localhost:8247/api/health
-# Result: {"status":"healthy","timestamp":"..."}
-
-# Ready endpoint (services not running)
-$ curl localhost:8247/api/health/ready
-# Result: {"status":"not_ready","checks":{"postgres":false,"redis":false,"qdrant":false}}
+# Result: {"status":"healthy",...}
 ```
 
 ---
 
 ## Phase 2: Database & Authentication
 
-**Status:** ✅ Complete  
-**Completed:** 2026-11-11
+**Status:** Complete
 
 ### What Was Built
-- **PostgreSQL Schema**: All 9 tables with proper relationships, indexes, and constraints
-  - users, medical_reports, extracted_results, conversations, messages, citations, knowledge_sources, feedback, audit_logs
-- **Qdrant Collections**: trusted_knowledge and user_reports with BGE-small embedding dimensions (384)
-- **Authentication System**:
-  - JWT access/refresh token generation and validation
-  - Password hashing with bcrypt (12 rounds)
-  - Auth service with register, login, token refresh
-- **API Endpoints**:
-  - POST /api/auth/register - User registration
-  - POST /api/auth/login - User login
-  - POST /api/auth/logout - User logout
-  - POST /api/auth/refresh - Token refresh
-  - GET /api/auth/me - Get current user
-- **Frontend**:
-  - Functional Login and Register pages
-  - AuthProvider context for state management
-  - Error handling and validation
+- PostgreSQL schema: users, medical_reports, extracted_results, conversations, messages, citations, knowledge_sources, feedback, audit_logs
+- Qdrant collections: `trusted_knowledge`, `user_reports` (BGE-small 384-dim)
+- JWT auth: register / login / logout / refresh / me
+- Frontend Login + Register + AuthProvider
 
 ### Commands Run and Results
 ```bash
-# Install and start PostgreSQL and Redis
-$ sudo apt-get install -y postgresql postgresql-contrib redis-server
 $ sudo service postgresql start && sudo service redis-server start
-# Result: Both services running
+# Result: Both online
 
-# Create database and user
-$ sudo -u postgres psql -c "CREATE USER medilens WITH PASSWORD 'medilens_dev';"
-$ sudo -u postgres psql -c "CREATE DATABASE medilens OWNER medilens;"
-# Result: CREATE ROLE, CREATE DATABASE
+$ ./qdrant   # local binary, port 6333
+# Result: Listening
 
-# Download and start Qdrant
-$ curl -LO https://github.com/qdrant/qdrant/releases/download/v1.12.0/qdrant-x86_64-unknown-linux-gnu.tar.gz
-$ ./qdrant
-# Result: Qdrant running on port 6333
-
-# Create Qdrant collections
-$ python -c "from app.embeddings import ensure_collections_exist; ensure_collections_exist()"
-# Result: Collections ['trusted_knowledge', 'user_reports'] created
-
-# Generate and apply Alembic migration
-$ alembic revision --autogenerate -m "Initial schema with all tables"
 $ alembic upgrade head
-# Result: 9 tables created with all indexes
+# Result: 9 tables created
 
-# Run all backend tests
-$ pytest ../tests/backend -v
-# Result: 14 passed (3 health + 11 auth tests)
-
-# Build frontend
-$ npm run build
-# Result: Build successful (344KB JS, 23KB CSS)
-
-# Health check
-$ curl localhost:8247/api/health/ready
-# Result: {"status":"ready","checks":{"postgres":true,"redis":true,"qdrant":true}}
+$ pytest -v   # auth + health
+# Result (historical): 14 passed
 ```
 
 ---
 
 ## Phase 3: Upload & Parsing
 
-**Status:** ✅ Complete  
-**Completed:** 2026-11-11
+**Status:** Complete (PaddleOCR primary verified in gap-close work)
 
 ### What Was Built
-- **Document Parsing Libraries**:
-  - PyMuPDF for digital PDF text extraction
-  - Tesseract OCR for scanned documents and images
-  - python-docx for Word document parsing
-- **File Upload System**:
-  - POST /api/reports/upload with multipart file upload
-  - File validation (PDF, JPG, PNG, DOCX only)
-  - Size limit enforcement (configurable, default 50MB)
-  - Duplicate detection via SHA-256 content hash
-  - User-isolated storage paths
-- **Report Management API**:
-  - GET /api/reports - List with pagination
-  - GET /api/reports/{id} - Get report details
-  - GET /api/reports/{id}/status - Get processing status
-  - DELETE /api/reports/{id} - Soft delete
-- **Tests**: 14 new tests (9 report, 5 ingestion)
+- Upload with validation, size limit, SHA-256 duplicate detection
+- PyMuPDF digital PDF, python-docx, OCR for scans/images
+- **OCR:** PaddleOCR primary; Tesseract documented fallback in `ocr_processor.py`
+- Report CRUD: list / get / status / delete
 
 ### Commands Run and Results
 ```bash
-# Install document parsing libraries
-$ pip install pymupdf python-docx pillow pytesseract
+$ pip install paddleocr pymupdf python-docx pillow pytesseract
 $ sudo apt-get install tesseract-ocr
-# Result: Successfully installed
 
-# Run all backend tests
-$ pytest ../tests/backend -v
-# Result: 28 passed
-
-# Test OCR
-$ pytest ../tests/backend/test_ingestion.py::test_ocr_simple_text -v
-# Result: 1 passed (Tesseract OCR working)
+$ pytest tests/ -k ingestion -v
+# OCR path exercised in ingestion tests (Tesseract always available as fallback)
 ```
 
 ### Notes
-- PaddleOCR 3.x had significant compatibility issues with the system's paddle framework.
-  Switched to Tesseract OCR which is more stable and widely supported.
-- OCR accuracy depends on image quality and font clarity.
+- Early builds used Tesseract-only after PaddleOCR API friction.
+- Gap-close: PaddleOCR initialized with `PaddleOCR(lang='en')` and used as primary; Tesseract remains fallback only.
 
 ---
 
 ## Phase 4: Structured Extraction
 
-**Status:** 🔄 In Progress  
-**Started:** 2026-11-11
+**Status:** Complete
 
 ### What Was Built
-(To be filled after completion)
+- Lab result extraction with confidence scores and `needs_verification`
+- Abnormal flag determination vs reference ranges
+- Endpoints: `GET/POST .../results`, `POST .../process`, `PATCH .../results/{id}`
+- Processing also indexes report text into Qdrant (`user_reports`) via LlamaIndex chunking when available
 
 ### Commands Run and Results
-(To be filled after completion)
+```bash
+$ pytest tests/ -k extraction -v
+# Covered by extraction unit tests in the suite
+```
 
 ---
+
+## Phase 5: Knowledge Ingestion
+
+**Status:** Complete
+
+### What Was Built
+- Permitted sources only: MedlinePlus, NIH/NIDDK, NHS, WHO
+- Ingestion service + `GET/POST /api/sources`
+- **LlamaIndex** `SentenceSplitter` + BGE embeddings for chunking/ingest; custom chunker fallback
+- Curated JSON docs under `sample_data/medical_knowledge/` with provenance fields
+
+### Commands Run and Results
+```bash
+$ python sample_data/ingest_knowledge.py
+# Ingests curated JSON into Postgres + Qdrant trusted_knowledge
+```
+
+---
+
+## Phase 6: Basic RAG
+
+**Status:** Complete
+
+### What Was Built
+- Vector search against trusted knowledge + user-isolated report search
+- LLM provider interface (OpenAI when keyed; unconfigured provider for tests)
+- Evidence sufficiency check + educational system prompt
+- Chat endpoints (non-stream + stream)
+
+### Commands Run and Results
+```bash
+$ pytest tests/test_rag.py -v
+# Passes with Fake/unconfigured LLM paths — no OPENAI_API_KEY required for unit tests
+```
+
+---
+
+## Phase 7: Hybrid Retrieval
+
+**Status:** Complete
+
+### What Was Built
+- BM25 index + Reciprocal Rank Fusion
+- BGE cross-encoder reranker (`BAAI/bge-reranker-base`)
+- Retrieval methods: `basic`, `hybrid`, `hybrid_rerank`, `context_aware` (default in pipeline)
+
+### Commands Run and Results
+```bash
+$ python -m app.evaluation.run_evaluation
+# Emits Recall@5 / MRR per method when knowledge base is populated
+```
+
+---
+
+## Phase 8: Safety & Citations
+
+**Status:** Complete
+
+### What Was Built
+- Intent classification + query safety + response validation
+- Emergency / diagnosis / medication / prompt-injection handling
+- Educational disclaimer enforcement
+- Citation extraction from knowledge chunks
+
+### Commands Run and Results
+```bash
+$ pytest tests/test_safety.py -v
+# Result: all safety tests passed as part of full suite
+```
+
+---
+
+## Phase 9: Chat Frontend
+
+**Status:** Complete
+
+### What Was Built
+- Chat UI with streaming consumer, conversation history
+- Wired to `/api/chat` and `/api/chat/conversations*`
+
+---
+
+## Phase 10: Comparison & Doctor Summary
+
+**Status:** Complete
+
+### What Was Built
+- `POST /api/reports/compare` + frontend Recharts comparison page
+- Doctor summary PDF via ReportLab (`POST /api/reports/{id}/summary` and `/api/doctor-summary`)
+- Privacy Center: delete reports (incl. vectors), delete conversations, retention preference API
+- Settings page (local UI prefs + account email)
+
+---
+
+## Phase 11: Evaluation & Testing
+
+**Status:** Complete (non-LLM metrics executed; RAGAS generation metrics NOT RUN without key)
+
+### What Was Built
+- 50 synthetic questions in `backend/app/evaluation/dataset.py`
+- Runner: `backend/app/evaluation/run_evaluation.py`
+- Committed results: `backend/evaluation_results.json`
+- Compares basic vs hybrid vs hybrid_rerank vs context_aware when Qdrant is populated
+- Explicitly marks faithfulness / answer relevancy / citation correctness as **NOT RUN** without `OPENAI_API_KEY`
+
+### Commands Run and Results
+```bash
+$ cd backend && python -m app.evaluation.run_evaluation
+# Intent + safety always run; retrieval runs if trusted_knowledge has points
+# LLM/RAGAS metrics: NOT RUN when OPENAI_API_KEY is empty
+```
+
+---
+
+## Phase 12: Production Docs & Verification
+
+**Status:** Complete for educational local deploy docs; Docker Compose present but **this environment runs Postgres/Redis/Qdrant directly (no Docker)**
+
+### What Was Built
+- `docs/DEPLOYMENT.md`, README run instructions
+- Full-stack local verification script path (register → upload → process → view → compare → summary → delete → vector check)
+- Screenshots under `/opt/cursor/artifacts/`
+- Git bundle: `/opt/cursor/artifacts/medilens-ai.bundle`
+
+### Honest caveats
+- Automatic retention purge jobs are **not** scheduled; retention preference is stored per user.
+- Generation quality metrics requiring an LLM key were **not** executed.
+- Settings notification toggles are client-local (not a full preferences API).

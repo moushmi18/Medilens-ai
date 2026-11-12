@@ -5,6 +5,7 @@ import uuid
 from pathlib import Path
 from typing import BinaryIO
 
+from qdrant_client import QdrantClient
 from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
@@ -12,6 +13,7 @@ from app.core.config import settings
 from app.core.exceptions import NotFoundError, ValidationError
 from app.core.logging import get_logger
 from app.database.models import MedicalReport, User
+from app.embeddings.qdrant_client import delete_user_report_vectors
 from app.ingestion import compute_file_hash
 
 logger = get_logger(__name__)
@@ -23,8 +25,9 @@ MAX_FILE_SIZE = settings.max_upload_size_mb * 1024 * 1024
 class ReportService:
     """Service for report management operations."""
     
-    def __init__(self, db: Session):
+    def __init__(self, db: Session, qdrant: QdrantClient | None = None):
         self.db = db
+        self.qdrant = qdrant
         self.upload_dir = Path(settings.upload_dir)
         self.upload_dir.mkdir(parents=True, exist_ok=True)
     
@@ -144,8 +147,18 @@ class ReportService:
         return list(reports), total
     
     def delete_report(self, user: User, report_id: uuid.UUID) -> None:
-        """Soft delete a report."""
+        """Soft delete a report and remove its vectors from Qdrant."""
         report = self.get_report(user, report_id)
+        
+        if self.qdrant is not None:
+            try:
+                delete_user_report_vectors(self.qdrant, user.id, report_id)
+            except Exception as e:
+                logger.warning(
+                    "report_vector_delete_failed",
+                    report_id=str(report_id),
+                    error=str(e),
+                )
         
         from datetime import datetime, timezone
         report.deleted_at = datetime.now(timezone.utc)
@@ -155,6 +168,7 @@ class ReportService:
             "report_deleted",
             report_id=str(report_id),
             user_id=str(user.id),
+            vectors_deleted=self.qdrant is not None,
         )
     
     def update_status(

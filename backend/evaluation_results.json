@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-11T13:29:45.321355",
+  "timestamp": "2026-11-12T06:13:22.183161",
   "dataset_stats": {
     "total_questions": 50,
     "categories": {
@@ -741,32 +741,191 @@
     "retrieval_comparison": {
       "metric": "retrieval_comparison",
       "status": "completed",
-      "note": "Knowledge base population required for full metrics",
-      "sample_results": {
-        "vector_only": [
-          {
-            "query": "What is cholesterol?",
-            "num_results": 0,
-            "top_score": 0
-          },
-          {
-            "query": "What does hemoglobin measure?",
-            "num_results": 0,
-            "top_score": 0
-          },
-          {
-            "query": "What is the normal range for TSH?",
-            "num_results": 0,
-            "top_score": 0
-          }
-        ],
-        "hybrid_rrf": []
-      }
+      "knowledge_points": 4,
+      "queries_evaluated": 17,
+      "methods": {
+        "basic": {
+          "recall_at_k": 1.0,
+          "mrr": 1.0,
+          "n": 17,
+          "k": 5,
+          "samples": [
+            {
+              "id": "edu_001",
+              "query": "What is cholesterol?",
+              "num_results": 4,
+              "top_relevant": true,
+              "any_relevant_in_topk": true
+            },
+            {
+              "id": "edu_002",
+              "query": "What does hemoglobin do?",
+              "num_results": 4,
+              "top_relevant": true,
+              "any_relevant_in_topk": true
+            },
+            {
+              "id": "edu_003",
+              "query": "Explain what HDL cholesterol means",
+              "num_results": 4,
+              "top_relevant": true,
+              "any_relevant_in_topk": true
+            },
+            {
+              "id": "edu_004",
+              "query": "What is a CBC test?",
+              "num_results": 4,
+              "top_relevant": true,
+              "any_relevant_in_topk": true
+            },
+            {
+              "id": "edu_005",
+              "query": "What are platelets?",
+              "num_results": 4,
+              "top_relevant": true,
+              "any_relevant_in_topk": true
+            }
+          ]
+        },
+        "hybrid": {
+          "recall_at_k": 1.0,
+          "mrr": 1.0,
+          "n": 17,
+          "k": 5,
+          "samples": [
+            {
+              "id": "edu_001",
+              "query": "What is cholesterol?",
+              "num_results": 4,
+              "top_relevant": true,
+              "any_relevant_in_topk": true
+            },
+            {
+              "id": "edu_002",
+              "query": "What does hemoglobin do?",
+              "num_results": 4,
+              "top_relevant": true,
+              "any_relevant_in_topk": true
+            },
+            {
+              "id": "edu_003",
+              "query": "Explain what HDL cholesterol means",
+              "num_results": 4,
+              "top_relevant": true,
+              "any_relevant_in_topk": true
+            },
+            {
+              "id": "edu_004",
+              "query": "What is a CBC test?",
+              "num_results": 4,
+              "top_relevant": true,
+              "any_relevant_in_topk": true
+            },
+            {
+              "id": "edu_005",
+              "query": "What are platelets?",
+              "num_results": 4,
+              "top_relevant": true,
+              "any_relevant_in_topk": true
+            }
+          ]
+        },
+        "hybrid_rerank": {
+          "recall_at_k": 1.0,
+          "mrr": 0.9705882352941176,
+          "n": 17,
+          "k": 5,
+          "samples": [
+            {
+              "id": "edu_001",
+              "query": "What is cholesterol?",
+              "num_results": 4,
+              "top_relevant": true,
+              "any_relevant_in_topk": true
+            },
+            {
+              "id": "edu_002",
+              "query": "What does hemoglobin do?",
+              "num_results": 4,
+              "top_relevant": true,
+              "any_relevant_in_topk": true
+            },
+            {
+              "id": "edu_003",
+              "query": "Explain what HDL cholesterol means",
+              "num_results": 4,
+              "top_relevant": true,
+              "any_relevant_in_topk": true
+            },
+            {
+              "id": "edu_004",
+              "query": "What is a CBC test?",
+              "num_results": 4,
+              "top_relevant": true,
+              "any_relevant_in_topk": true
+            },
+            {
+              "id": "edu_005",
+              "query": "What are platelets?",
+              "num_results": 4,
+              "top_relevant": true,
+              "any_relevant_in_topk": true
+            }
+          ]
+        },
+        "context_aware": {
+          "recall_at_k": 1.0,
+          "mrr": 0.9705882352941176,
+          "n": 17,
+          "k": 5,
+          "samples": [
+            {
+              "id": "edu_001",
+              "query": "What is cholesterol?",
+              "num_results": 4,
+              "top_relevant": true,
+              "any_relevant_in_topk": true
+            },
+            {
+              "id": "edu_002",
+              "query": "What does hemoglobin do?",
+              "num_results": 4,
+              "top_relevant": true,
+              "any_relevant_in_topk": true
+            },
+            {
+              "id": "edu_003",
+              "query": "Explain what HDL cholesterol means",
+              "num_results": 4,
+              "top_relevant": true,
+              "any_relevant_in_topk": true
+            },
+            {
+              "id": "edu_004",
+              "query": "What is a CBC test?",
+              "num_results": 4,
+              "top_relevant": true,
+              "any_relevant_in_topk": true
+            },
+            {
+              "id": "edu_005",
+              "query": "What are platelets?",
+              "num_results": 4,
+              "top_relevant": true,
+              "any_relevant_in_topk": true
+            }
+          ]
+        }
+      },
+      "note": "Relevance judged by expected_topics substring overlap in retrieved chunks. Not a human-labeled gold set."
     }
   },
   "llm_status": {
     "available": false,
     "reason": "OPENAI_API_KEY not set",
-    "ragas_metrics": "pending - requires LLM"
+    "ragas_metrics": "NOT RUN \u2014 requires OPENAI_API_KEY",
+    "faithfulness": "NOT RUN",
+    "answer_relevancy": "NOT RUN",
+    "citation_correctness": "NOT RUN"
   }
 }

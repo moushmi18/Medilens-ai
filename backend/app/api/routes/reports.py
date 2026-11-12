@@ -4,7 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, File, Header, UploadFile
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_db
+from app.api.deps import get_db, get_qdrant
 from app.core.exceptions import AuthenticationError
 from app.schemas.reports import (
     ReportUploadResponse,
@@ -28,12 +28,18 @@ def get_auth_service(db: Session = Depends(get_db)) -> AuthService:
     return AuthService(db)
 
 
-def get_report_service(db: Session = Depends(get_db)) -> ReportService:
-    return ReportService(db)
+def get_report_service(
+    db: Session = Depends(get_db),
+    qdrant=Depends(get_qdrant),
+) -> ReportService:
+    return ReportService(db, qdrant=qdrant)
 
 
-def get_extraction_service(db: Session = Depends(get_db)) -> ExtractionService:
-    return ExtractionService(db)
+def get_extraction_service(
+    db: Session = Depends(get_db),
+    qdrant=Depends(get_qdrant),
+) -> ExtractionService:
+    return ExtractionService(db, qdrant=qdrant)
 
 
 def get_token_from_header(authorization: str | None = Header(default=None)) -> str:

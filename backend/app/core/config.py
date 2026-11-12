@@ -26,14 +26,18 @@ class Settings(BaseSettings):
     host: str = "0.0.0.0"
     port: int = 8247
 
-    # CORS
+    # CORS — accept JSON list or comma-separated string
     cors_origins: List[str] = Field(default=["http://localhost:5847", "http://127.0.0.1:5847"])
 
     @field_validator("cors_origins", mode="before")
     @classmethod
     def parse_cors_origins(cls, v: str | List[str]) -> List[str]:
         if isinstance(v, str):
-            return [origin.strip() for origin in v.split(",")]
+            raw = v.strip()
+            if raw.startswith("["):
+                import json
+                return list(json.loads(raw))
+            return [origin.strip() for origin in raw.split(",") if origin.strip()]
         return v
 
     # Database

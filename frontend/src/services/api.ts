@@ -87,15 +87,44 @@ class ApiClient {
   }
 
   async register(request: RegisterRequest): Promise<AuthResponse> {
-    const { data } = await this.client.post<AuthResponse>('/auth/register', request);
-    this.setAccessToken(data.accessToken);
-    return data;
+    const { data } = await this.client.post<{
+      access_token: string;
+      refresh_token: string;
+      token_type: string;
+      expires_in: number;
+    }>('/auth/register', {
+      email: request.email,
+      password: request.password,
+      full_name: request.fullName,
+    });
+    const normalized: AuthResponse = {
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token,
+      tokenType: data.token_type,
+      expiresIn: data.expires_in,
+    };
+    this.setAccessToken(normalized.accessToken);
+    return normalized;
   }
 
   async login(request: LoginRequest): Promise<AuthResponse> {
-    const { data } = await this.client.post<AuthResponse>('/auth/login', request);
-    this.setAccessToken(data.accessToken);
-    return data;
+    const { data } = await this.client.post<{
+      access_token: string;
+      refresh_token: string;
+      token_type: string;
+      expires_in: number;
+    }>('/auth/login', {
+      email: request.email,
+      password: request.password,
+    });
+    const normalized: AuthResponse = {
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token,
+      tokenType: data.token_type,
+      expiresIn: data.expires_in,
+    };
+    this.setAccessToken(normalized.accessToken);
+    return normalized;
   }
 
   async logout(): Promise<void> {
@@ -107,8 +136,20 @@ class ApiClient {
   }
 
   async getMe(): Promise<User> {
-    const { data } = await this.client.get<User>('/auth/me');
-    return data;
+    const { data } = await this.client.get<{
+      id: string;
+      email: string;
+      full_name?: string;
+      created_at: string;
+      email_verified: boolean;
+    }>('/auth/me');
+    return {
+      id: data.id,
+      email: data.email,
+      fullName: data.full_name,
+      createdAt: data.created_at,
+      emailVerified: data.email_verified,
+    };
   }
 
   async getDashboard(): Promise<DashboardStats> {
@@ -203,10 +244,10 @@ class ApiClient {
     return data;
   }
 
-  async generateDoctorSummary(reportId: string): Promise<Blob> {
+  async generateDoctorSummary(reportId: string, includeQuestions = true): Promise<Blob> {
     const { data } = await this.client.post(
       '/doctor-summary',
-      { reportId },
+      { report_id: reportId, include_questions: includeQuestions },
       { responseType: 'blob' }
     );
     return data;
@@ -220,7 +261,23 @@ class ApiClient {
   }
 
   async submitFeedback(request: FeedbackRequest): Promise<void> {
-    await this.client.post('/feedback', request);
+    await this.client.post('/feedback', {
+      message_id: request.messageId,
+      feedback_type: request.feedbackType,
+      comment: request.comment,
+    });
+  }
+
+  async getRetention(): Promise<{ retention_days: number }> {
+    const { data } = await this.client.get<{ retention_days: number }>('/privacy/retention');
+    return data;
+  }
+
+  async updateRetention(retentionDays: number): Promise<{ retention_days: number }> {
+    const { data } = await this.client.put<{ retention_days: number }>('/privacy/retention', {
+      retention_days: retentionDays,
+    });
+    return data;
   }
 }
 

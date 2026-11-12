@@ -2,12 +2,14 @@
 from pathlib import Path
 from uuid import UUID
 
+from qdrant_client import QdrantClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import NotFoundError
 from app.core.logging import get_logger
 from app.database.models import MedicalReport, ExtractedResult, User
+from app.embeddings.qdrant_client import USER_REPORTS_COLLECTION
 from app.extraction import extract_lab_results, determine_abnormal_status
 from app.ingestion import extract_text_from_pdf, ocr_image, ocr_pdf_pages, get_pdf_page_images
 from app.ingestion.docx_parser import extract_text_from_docx
@@ -18,8 +20,9 @@ logger = get_logger(__name__)
 class ExtractionService:
     """Service for extracting structured data from reports."""
     
-    def __init__(self, db: Session):
+    def __init__(self, db: Session, qdrant: QdrantClient | None = None):
         self.db = db
+        self.qdrant = qdrant
     
     def process_report(self, report_id: UUID) -> list[ExtractedResult]:
         """Process a report and extract structured data."""
@@ -65,6 +68,8 @@ class ExtractionService:
                 self.db.add(result)
                 results.append(result)
             
+            self._index_report_vectors(report, text)
+            
             self._update_status(report, "completed")
             self.db.commit()
             
@@ -81,6 +86,34 @@ class ExtractionService:
             self.db.commit()
             logger.error("report_processing_failed", report_id=str(report_id), error=str(e))
             raise
+    
+    def _index_report_vectors(self, report: MedicalReport, text: str) -> None:
+        """Index report text into Qdrant via LlamaIndex chunking when available."""
+        if not self.qdrant or not text.strip():
+            return
+        
+        try:
+            from app.knowledge.llama_integration import LlamaIndexDocumentProcessor
+            
+            processor = LlamaIndexDocumentProcessor(chunk_size=512, chunk_overlap=64)
+            processor.ingest_to_qdrant(
+                client=self.qdrant,
+                collection_name=USER_REPORTS_COLLECTION,
+                text=text,
+                source_id=str(report.id),
+                metadata={
+                    "user_id": str(report.user_id),
+                    "report_id": str(report.id),
+                    "report_filename": report.original_filename,
+                    "source_type": "user_report",
+                },
+            )
+        except Exception as e:
+            logger.warning(
+                "report_vector_indexing_failed",
+                report_id=str(report.id),
+                error=str(e),
+            )
     
     def get_results(self, user: User, report_id: UUID) -> list[ExtractedResult]:
         """Get extracted results for a report."""

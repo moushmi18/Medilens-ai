@@ -74,9 +74,9 @@ class ComparisonService:
                 raise NotFoundError("Report", str(report_id))
             reports.append(report)
         
-        reports.sort(key=lambda r: r.uploaded_at)
+        reports.sort(key=lambda r: r.created_at or r.updated_at)
         report_ids = [r.id for r in reports]
-        report_dates = [r.uploaded_at for r in reports]
+        report_dates = [r.created_at for r in reports]
         
         all_results: dict[UUID, list[ExtractedResult]] = {}
         for report in reports:

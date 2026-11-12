@@ -31,8 +31,13 @@ class ReportResponse(BaseModel):
     ocr_required: bool
     created_at: datetime
     updated_at: datetime
+    uploaded_at: datetime | None = None
     
     model_config = {"from_attributes": True}
+    
+    def model_post_init(self, __context) -> None:
+        if self.uploaded_at is None:
+            object.__setattr__(self, "uploaded_at", self.created_at)
 
 
 class ReportStatusResponse(BaseModel):

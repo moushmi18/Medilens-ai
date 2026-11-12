@@ -23,6 +23,9 @@ export default function PrivacyCenterPage() {
   const [confirmDelete, setConfirmDelete] = useState<'reports' | 'conversations' | 'all' | null>(null);
   const [retentionDays, setRetentionDays] = useState(90);
 
+  const [savingRetention, setSavingRetention] = useState(false);
+  const [retentionSaved, setRetentionSaved] = useState(false);
+
   useEffect(() => {
     loadStats();
   }, []);
@@ -36,10 +39,30 @@ export default function PrivacyCenterPage() {
         const convsResponse = await api.listConversations(1, 1);
         setStats(prev => ({ ...prev, total_conversations: convsResponse.total }));
       } catch {}
+
+      try {
+        const retention = await api.getRetention();
+        setRetentionDays(retention.retention_days);
+      } catch {}
     } catch (error) {
       console.error('Failed to load stats:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveRetention = async (days: number) => {
+    setRetentionDays(days);
+    setSavingRetention(true);
+    try {
+      await api.updateRetention(days);
+      setRetentionSaved(true);
+      setTimeout(() => setRetentionSaved(false), 2000);
+    } catch (error) {
+      console.error('Failed to save retention:', error);
+      alert('Failed to save retention setting.');
+    } finally {
+      setSavingRetention(false);
     }
   };
 
@@ -135,7 +158,8 @@ export default function PrivacyCenterPage() {
               </label>
               <select
                 value={retentionDays}
-                onChange={(e) => setRetentionDays(Number(e.target.value))}
+                onChange={(e) => handleSaveRetention(Number(e.target.value))}
+                disabled={savingRetention}
                 className="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value={30}>30 days</option>
@@ -147,7 +171,7 @@ export default function PrivacyCenterPage() {
             </div>
           </div>
           <p className="text-sm text-gray-500 mt-2">
-            Note: Automatic retention is not yet implemented. Use manual deletion below.
+            Preference saved to your account{retentionSaved ? ' ✓' : ''}. Automatic purge jobs are not scheduled in this educational build — use manual deletion below.
           </p>
         </div>
 

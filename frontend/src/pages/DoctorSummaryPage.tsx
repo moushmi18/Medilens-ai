@@ -45,18 +45,7 @@ export default function DoctorSummaryPage() {
     setSuccess(false);
 
     try {
-      const response = await fetch(`/api/reports/${selectedReport}/summary`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-        },
-        body: JSON.stringify({ include_questions: includeQuestions }),
-      });
-
-      if (!response.ok) throw new Error('Failed to generate summary');
-
-      const blob = await response.blob();
+      const blob = await api.generateDoctorSummary(selectedReport, includeQuestions);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;

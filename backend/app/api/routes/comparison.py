@@ -19,7 +19,8 @@ from app.services.auth_service import AuthService
 from app.services.comparison_service import ComparisonService
 from app.services.summary_service import SummaryService
 
-router = APIRouter(prefix="/reports")
+reports_router = APIRouter(prefix="/reports")
+router = APIRouter()
 
 
 def get_auth_service(db: Session = Depends(get_db)) -> AuthService:
@@ -45,7 +46,7 @@ def get_token_from_header(authorization: str | None = Header(default=None)) -> s
     return parts[1]
 
 
-@router.post("/compare", response_model=ComparisonResponse)
+@reports_router.post("/compare", response_model=ComparisonResponse)
 def compare_reports(
     request: CompareRequest,
     token: str = Depends(get_token_from_header),
@@ -78,7 +79,7 @@ def compare_reports(
     )
 
 
-@router.post("/{report_id}/summary")
+@reports_router.post("/{report_id}/summary")
 def generate_summary(
     report_id: UUID,
     request: SummaryRequest,
@@ -95,6 +96,38 @@ def generate_summary(
         include_questions=request.include_questions,
     )
     
+    return StreamingResponse(
+        io.BytesIO(pdf_content),
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}",
+        },
+    )
+
+
+class DoctorSummaryBody(SummaryRequest):
+    report_id: UUID | None = None
+
+
+@router.post("/doctor-summary")
+def generate_doctor_summary(
+    request: DoctorSummaryBody,
+    token: str = Depends(get_token_from_header),
+    auth_service: AuthService = Depends(get_auth_service),
+    summary_service: SummaryService = Depends(get_summary_service),
+) -> StreamingResponse:
+    """Spec alias: POST /api/doctor-summary."""
+    user = auth_service.get_current_user(token)
+    if request.report_id is None:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="report_id is required")
+
+    pdf_content, filename = summary_service.generate_summary(
+        user=user,
+        report_id=request.report_id,
+        include_questions=request.include_questions,
+    )
+
     return StreamingResponse(
         io.BytesIO(pdf_content),
         media_type="application/pdf",

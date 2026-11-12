@@ -20,8 +20,5 @@ def get_db() -> Generator[Session, Any, None]:
 
 def get_qdrant() -> QdrantClient:
     """Dependency to get Qdrant client."""
-    settings = get_settings()
-    return QdrantClient(
-        host=settings.qdrant_host,
-        port=settings.qdrant_port,
-    )
+    from app.embeddings.qdrant_client import get_qdrant_client
+    return get_qdrant_client()

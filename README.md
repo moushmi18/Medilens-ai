@@ -28,7 +28,8 @@ This application should only be used with synthetic test data. Never upload real
 - **Backend**: FastAPI, Python 3.12
 - **Database**: PostgreSQL (user data), Qdrant (vector search), Redis (cache/queue)
 - **ML/AI**: sentence-transformers (BGE embeddings), OpenAI API (optional)
-- **Document Processing**: PyMuPDF, Tesseract OCR, python-docx
+- **Document Processing**: PyMuPDF, **PaddleOCR (primary)** with Tesseract fallback, python-docx
+- **Chunking / vectors**: LlamaIndex SentenceSplitter + BGE-small-en-v1.5; hybrid BM25+RRF+rerank retrieval
 
 ## Quick Start
 

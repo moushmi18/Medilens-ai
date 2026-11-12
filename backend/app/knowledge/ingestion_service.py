@@ -27,7 +27,12 @@ logger = get_logger(__name__)
 
 
 class KnowledgeIngestionService:
-    """Service for ingesting knowledge from trusted sources."""
+    """Service for ingesting knowledge from trusted sources.
+    
+    Uses LlamaIndex SentenceSplitter for semantic chunking when available,
+    with the custom SemanticChunker as fallback. Custom hybrid retrieval
+    (BM25 + RRF + rerank) remains in the RAG layer.
+    """
     
     def __init__(
         self,
@@ -39,6 +44,20 @@ class KnowledgeIngestionService:
         self.chunker = SemanticChunker()
         self.embeddings = EmbeddingService()
         self.fetcher = KnowledgeFetcher()
+        self._llama_processor = None
+    
+    def _get_llama_processor(self):
+        if self._llama_processor is None:
+            try:
+                from app.knowledge.llama_integration import LlamaIndexDocumentProcessor
+                self._llama_processor = LlamaIndexDocumentProcessor(
+                    chunk_size=512,
+                    chunk_overlap=64,
+                )
+            except Exception as e:
+                logger.warning("llamaindex_unavailable", error=str(e))
+                self._llama_processor = False
+        return self._llama_processor if self._llama_processor is not False else None
     
     def ingest_content(
         self,
@@ -76,50 +95,81 @@ class KnowledgeIngestionService:
             )
             return existing
         
-        chunks = self.chunker.chunk_text(content)
-        
-        if not chunks:
-            logger.warning("no_chunks_generated", url=url)
-            raise ValueError("Content produced no chunks for embedding")
-        
-        chunk_texts = [chunk.text for chunk in chunks]
-        embeddings = self.embeddings.embed_texts(chunk_texts)
-        
+        publisher_map = {
+            SourceType.MEDLINEPLUS: "MedlinePlus / NLM",
+            SourceType.NIH_NIDDK: "NIH / NIDDK",
+            SourceType.NHS: "NHS",
+            SourceType.WHO: "WHO",
+        }
+        topics = (metadata or {}).get("topics")
+        topic_str = ", ".join(topics) if isinstance(topics, list) else (metadata or {}).get("topic")
+
         source = KnowledgeSource(
-            source_type=source_type.value,
-            source_url=url,
             title=title,
+            publisher=publisher_map.get(source_type, source_type.value),
+            url=url,
+            retrieval_date=datetime.utcnow(),
+            topic=topic_str,
             content_hash=content_hash,
-            chunk_count=len(chunks),
-            last_refreshed=datetime.utcnow(),
+            verification_status="verified",
+            is_active=True,
         )
         self.db.add(source)
         self.db.flush()
         
-        points = []
-        for i, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
-            point_id = str(uuid4())
-            points.append(
-                PointStruct(
-                    id=point_id,
-                    vector=embedding,
-                    payload={
-                        "source_id": str(source.id),
-                        "source_type": source_type.value,
-                        "source_url": url,
-                        "title": title,
-                        "chunk_index": i,
-                        "chunk_text": chunk.text,
-                        "word_count": chunk.word_count,
-                        **(metadata or {}),
-                    },
-                )
-            )
+        payload_meta = {
+            "source_type": source_type.value,
+            "source_url": url,
+            "title": title,
+            "publisher": source.publisher,
+            **(metadata or {}),
+        }
         
-        self.qdrant.upsert(
-            collection_name=TRUSTED_KNOWLEDGE_COLLECTION,
-            points=points,
-        )
+        chunk_count = 0
+        llama = self._get_llama_processor()
+        if llama is not None:
+            chunk_count = llama.ingest_to_qdrant(
+                client=self.qdrant,
+                collection_name=TRUSTED_KNOWLEDGE_COLLECTION,
+                text=content,
+                source_id=str(source.id),
+                metadata=payload_meta,
+            )
+            if chunk_count == 0:
+                raise ValueError("Content produced no chunks for embedding")
+            logger.info("content_ingested_via_llamaindex", source_id=str(source.id), chunks=chunk_count)
+        else:
+            chunks = self.chunker.chunk_text(content)
+            if not chunks:
+                logger.warning("no_chunks_generated", url=url)
+                raise ValueError("Content produced no chunks for embedding")
+            
+            chunk_texts = [chunk.text for chunk in chunks]
+            embeddings = self.embeddings.embed_texts(chunk_texts)
+            
+            points = []
+            for i, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
+                point_id = str(uuid4())
+                points.append(
+                    PointStruct(
+                        id=point_id,
+                        vector=embedding,
+                        payload={
+                            "source_id": str(source.id),
+                            "chunk_index": i,
+                            "chunk_text": chunk.text,
+                            "word_count": chunk.word_count,
+                            **payload_meta,
+                        },
+                    )
+                )
+            
+            self.qdrant.upsert(
+                collection_name=TRUSTED_KNOWLEDGE_COLLECTION,
+                points=points,
+            )
+            chunk_count = len(chunks)
+            logger.info("content_ingested_via_fallback_chunker", source_id=str(source.id), chunks=chunk_count)
         
         self.db.commit()
         
@@ -127,7 +177,7 @@ class KnowledgeIngestionService:
             "content_ingested",
             source_id=str(source.id),
             url=url,
-            chunks=len(chunks),
+            chunks=chunk_count,
         )
         
         return source
@@ -151,22 +201,22 @@ class KnowledgeIngestionService:
         """List knowledge sources.
         
         Args:
-            source_type: Filter by source type
+            source_type: Optional publisher/type filter (matched against publisher text)
             limit: Max results
             offset: Offset for pagination
             
         Returns:
             Tuple of (sources, total_count)
         """
-        query = select(KnowledgeSource)
+        query = select(KnowledgeSource).where(KnowledgeSource.is_active.is_(True))
         
         if source_type:
-            query = query.where(KnowledgeSource.source_type == source_type.value)
+            query = query.where(KnowledgeSource.publisher.ilike(f"%{source_type.value}%"))
         
-        count_query = select(KnowledgeSource.id)
+        count_query = select(KnowledgeSource.id).where(KnowledgeSource.is_active.is_(True))
         if source_type:
             count_query = count_query.where(
-                KnowledgeSource.source_type == source_type.value
+                KnowledgeSource.publisher.ilike(f"%{source_type.value}%")
             )
         total = len(self.db.execute(count_query).scalars().all())
         
@@ -191,7 +241,7 @@ class KnowledgeIngestionService:
         if not source:
             return None
         
-        source.last_refreshed = datetime.utcnow()
+        source.retrieval_date = datetime.utcnow()
         self.db.commit()
         
         logger.info("source_refreshed", source_id=str(source_id))
